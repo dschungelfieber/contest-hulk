@@ -1,0 +1,47 @@
+name: Contest Hulk Daily Digest
+
+on:
+  schedule:
+    - cron: '0 14 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  smash:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Contest Hulk
+        env:
+          SEND_FROM_EMAIL: ${{ secrets.SEND_FROM_EMAIL }}
+          SEND_FROM_PASSWORD: ${{ secrets.SEND_FROM_PASSWORD }}
+          SEND_TO_EMAIL: ${{ secrets.SEND_TO_EMAIL }}
+          YOUR_NAME: ${{ secrets.YOUR_NAME }}
+        run: |
+          cd src
+          python main.py
+
+      - name: Commit updated seen list
+        run: |
+          git config user.name "Contest Hulk Bot"
+          git config user.email "bot@contest-hulk"
+          git add data/seen_contests.json || true
+          git diff --staged --quiet || git commit -m "Update seen contests [$(date +'%Y-%m-%d')]"
+          git push || true
